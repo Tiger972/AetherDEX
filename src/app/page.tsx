@@ -1,103 +1,105 @@
-import Image from "next/image";
+"use client";
+
+import { useState, useEffect } from "react";
+import { ethers } from "ethers";
+import abi from "../abi/SimpleDEX.json";
+
+const DEX_ADDRESS = "0x1d61EE6cc145A68Da54Ced80F6956498bcCaCF02";
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [account, setAccount] = useState<string | null>(null);
+  const [reserveETH, setReserveETH] = useState<string>("0");
+  const [reserveToken, setReserveToken] = useState<string>("0");
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+  async function connectWallet() {
+    try {
+      if (!window.ethereum) {
+        alert("Please install MetaMask!");
+        return;
+      }
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const accounts = await provider.send("eth_requestAccounts", []);
+      setAccount(accounts[0]);
+    } catch (err) {
+      console.error("Wallet connection failed:", err);
+    }
+  }
+
+  async function loadReserves() {
+    try {
+      setIsLoading(true);
+      const provider = new ethers.JsonRpcProvider(
+        `https://sepolia.infura.io/v3/${process.env.NEXT_PUBLIC_INFURA_ID}`
+      );
+      const dex = new ethers.Contract(DEX_ADDRESS, abi.abi, provider);
+
+      const eth = await dex.reserveETH();
+      const token = await dex.reserveToken();
+
+      setReserveETH(parseFloat(ethers.formatEther(eth)).toFixed(3));
+      setReserveToken(parseFloat(ethers.formatEther(token)).toFixed(3));
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadReserves();
+  }, []);
+
+  return (
+    <main className="min-h-screen bg-[#0b0c10] text-white flex flex-col items-center justify-center p-10 space-y-12">
+      <h1 className="text-3xl font-bold text-center mb-8 glow">
+        💧 Simple DEX Dashboard
+      </h1>
+
+     {/* Cards container */}
+<div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-5xl justify-items-center">
+  {/* Wallet Card */}
+  <div className="card text-center p-5 w-full max-w-sm">
+    <h2 className="text-xl font-semibold mb-4">💳 Wallet</h2>
+
+    <button
+      onClick={connectWallet}
+      className="btn-primary w-full py-2 mb-3"
+    >
+      {account
+        ? `Connected: ${account.slice(0, 6)}...${account.slice(-4)}`
+        : "Connect Wallet"}
+    </button>
+
+    {account && (
+      <p className="text-sm text-gray-300">
+        Wallet connected successfully ✅
+      </p>
+    )}
+  </div>
+
+  {/* Liquidity Pool Card */}
+  <div className="card text-center p-5 w-full max-w-sm">
+    <h2 className="text-xl font-semibold mb-4">💧 Liquidity Pool</h2>
+
+    <div className="space-y-2 text-gray-200">
+      <p>Reserve ETH: {isLoading ? "..." : `${reserveETH} ETH`}</p>
+      <p>Reserve Token: {isLoading ? "..." : `${reserveToken} TKN`}</p>
     </div>
+
+    <button
+      onClick={loadReserves}
+      disabled={isLoading}
+      className="btn-primary w-full mt-4"
+    >
+      {isLoading ? "Refreshing..." : "🔄 Refresh"}
+    </button>
+  </div>
+</div>
+
+      <footer className="text-sm text-gray-400 mt-12">
+        Built with ❤️ using Next.js + Tailwind + Ethers.js
+      </footer>
+    </main>
   );
 }
