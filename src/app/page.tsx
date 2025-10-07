@@ -56,46 +56,46 @@ export default function Home() {
         💧 Simple DEX Dashboard
       </h1>
 
-     {/* Cards container */}
-<div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-5xl justify-items-center">
-  {/* Wallet Card */}
-  <div className="card text-center p-5 w-full max-w-sm">
-    <h2 className="text-xl font-semibold mb-4">💳 Wallet</h2>
+      {/* Cards container */}
+      <div className="flex flex-wrap justify-center gap-10 md:gap-12 w-full max-w-4xl px-4">
+        {/* Wallet Card */}
+        <div className="card text-center p-6 flex-1 min-w-[17rem] max-w-sm">
+          <h2 className="text-xl font-semibold mb-4">💳 Wallet</h2>
 
-    <button
-      onClick={connectWallet}
-      className="btn-primary w-full py-2 mb-3"
-    >
-      {account
-        ? `Connected: ${account.slice(0, 6)}...${account.slice(-4)}`
-        : "Connect Wallet"}
-    </button>
+          <button
+            onClick={connectWallet}
+            className="btn-primary w-full py-2 mb-3"
+          >
+            {account
+              ? `Connected: ${account.slice(0, 6)}...${account.slice(-4)}`
+              : "Connect Wallet"}
+          </button>
 
-    {account && (
-      <p className="text-sm text-gray-300">
-        Wallet connected successfully ✅
-      </p>
-    )}
-  </div>
+          {account && (
+            <p className="text-sm text-gray-300">
+              Wallet connected successfully ✅
+            </p>
+          )}
+        </div>
 
-  {/* Liquidity Pool Card */}
-  <div className="card text-center p-5 w-full max-w-sm">
-    <h2 className="text-xl font-semibold mb-4">💧 Liquidity Pool</h2>
+        {/* Liquidity Pool Card */}
+        <div className="card text-center p-6 flex-1 min-w-[17rem] max-w-sm">
+          <h2 className="text-xl font-semibold mb-4">💧 Liquidity Pool</h2>
 
-    <div className="space-y-2 text-gray-200">
-      <p>Reserve ETH: {isLoading ? "..." : `${reserveETH} ETH`}</p>
-      <p>Reserve Token: {isLoading ? "..." : `${reserveToken} TKN`}</p>
-    </div>
+          <div className="space-y-2 text-gray-200">
+            <p>Reserve ETH: {isLoading ? "..." : `${reserveETH} ETH`}</p>
+            <p>Reserve Token: {isLoading ? "..." : `${reserveToken} TKN`}</p>
+          </div>
 
-    <button
-      onClick={loadReserves}
-      disabled={isLoading}
-      className="btn-primary w-full mt-4"
-    >
-      {isLoading ? "Refreshing..." : "🔄 Refresh"}
-    </button>
-  </div>
-</div>
+          <button
+            onClick={loadReserves}
+            disabled={isLoading}
+            className="btn-primary w-full mt-4"
+          >
+            {isLoading ? "Refreshing..." : "🔄 Refresh"}
+          </button>
+        </div>
+      </div>
 
       <footer className="text-sm text-gray-400 mt-12">
         Built with ❤️ using Next.js + Tailwind + Ethers.js
