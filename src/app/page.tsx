@@ -70,10 +70,7 @@ export default function Home() {
       setReserveToken(parseFloat(ethers.formatEther(tokenReserve)).toFixed(3));
     } catch (error) {
       console.error("Failed to load reserves:", error);
-      const message =
-        error instanceof Error
-          ? error.message
-          : "Unexpected error while loading reserves.";
+      const message = getReadableReserveError(error);
       setReserveError(message);
     } finally {
       setIsLoading(false);
@@ -177,4 +174,22 @@ export default function Home() {
       </footer>
     </main>
   );
+}
+
+function getReadableReserveError(error: unknown): string {
+  if (typeof error === "object" && error !== null) {
+    const maybeCode = (error as { code?: string }).code;
+    if (maybeCode === "NETWORK_ERROR") {
+      return "Unable to reach Sepolia RPC. Check your internet or Infura key.";
+    }
+    if (maybeCode === "CALL_EXCEPTION") {
+      return "Contract call reverted. Ensure you are connected to Sepolia or provide NEXT_PUBLIC_INFURA_ID.";
+    }
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "Unexpected error while loading reserves.";
 }
