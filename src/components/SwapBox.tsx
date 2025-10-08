@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { ReactElement, useState } from "react";
 import { ethers } from "ethers";
 import SimpleDEX from "@/abi/SimpleDEX.json";
 
@@ -12,7 +12,7 @@ const DEX_ADDRESS = "0x1d61EE6cc145A68Da54Ced80F6956498bcCaCF02";
 
 export default function SwapBox({
   onSwapComplete,
-}: SwapBoxProps): JSX.Element {
+}: SwapBoxProps): ReactElement {
   const [ethAmount, setEthAmount] = useState<string>("");
   const [isSwapping, setIsSwapping] = useState<boolean>(false);
   const [statusMessage, setStatusMessage] = useState<string>("");
