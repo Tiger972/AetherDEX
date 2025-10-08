@@ -1,16 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { ethers } from "ethers";
 import type { MetaMaskInpageProvider } from "@metamask/providers";
+import SwapBox from "@/components/SwapBox";
 import abi from "../abi/SimpleDEX.json";
 
 const DEX_ADDRESS = "0x1d61EE6cc145A68Da54Ced80F6956498bcCaCF02";
 
 export default function Home() {
   const [account, setAccount] = useState<string | null>(null);
-  const [reserveETH, setReserveETH] = useState<string>("0");
-  const [reserveToken, setReserveToken] = useState<string>("0");
+  const [reserveETH, setReserveETH] = useState<string | null>(null);
+  const [reserveToken, setReserveToken] = useState<string | null>(null);
+  const [reserveError, setReserveError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   async function connectWallet(): Promise<void> {
@@ -35,29 +37,52 @@ export default function Home() {
     }
   }
 
-  async function loadReserves() {
+  const loadReserves = useCallback(async () => {
+    setIsLoading(true);
+    setReserveError(null);
+
     try {
-      setIsLoading(true);
-      const provider = new ethers.JsonRpcProvider(
-        `https://sepolia.infura.io/v3/${process.env.NEXT_PUBLIC_INFURA_ID}`
-      );
+      const infuraId = process.env.NEXT_PUBLIC_INFURA_ID;
+      let provider: ethers.JsonRpcProvider | ethers.BrowserProvider | null =
+        null;
+
+      if (infuraId) {
+        provider = new ethers.JsonRpcProvider(
+          `https://sepolia.infura.io/v3/${infuraId}`
+        );
+      } else if (window.ethereum) {
+        provider = new ethers.BrowserProvider(window.ethereum);
+      }
+
+      if (!provider) {
+        throw new Error(
+          "Set NEXT_PUBLIC_INFURA_ID or connect MetaMask to view reserves."
+        );
+      }
+
       const dex = new ethers.Contract(DEX_ADDRESS, abi.abi, provider);
+      const [ethReserve, tokenReserve] = await Promise.all([
+        dex.reserveETH(),
+        dex.reserveToken(),
+      ]);
 
-      const eth = await dex.reserveETH();
-      const token = await dex.reserveToken();
-
-      setReserveETH(parseFloat(ethers.formatEther(eth)).toFixed(3));
-      setReserveToken(parseFloat(ethers.formatEther(token)).toFixed(3));
+      setReserveETH(parseFloat(ethers.formatEther(ethReserve)).toFixed(3));
+      setReserveToken(parseFloat(ethers.formatEther(tokenReserve)).toFixed(3));
     } catch (error) {
-      console.error(error);
+      console.error("Failed to load reserves:", error);
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Unexpected error while loading reserves.";
+      setReserveError(message);
     } finally {
       setIsLoading(false);
     }
-  }
+  }, []);
 
   useEffect(() => {
     loadReserves();
-  }, []);
+  }, [loadReserves]);
 
   return (
     <main className="dashboard-main">
@@ -111,8 +136,22 @@ export default function Home() {
             <h2 className="dashboard-card__title">💧 Liquidity Pool</h2>
 
             <div className="dashboard-card__info">
-              <p>Reserve ETH: {isLoading ? "..." : `${reserveETH} ETH`}</p>
-              <p>Reserve Token: {isLoading ? "..." : `${reserveToken} TKN`}</p>
+              <p>
+                Reserve ETH:{" "}
+                {reserveError
+                  ? "N/A"
+                  : isLoading || reserveETH === null
+                  ? "..."
+                  : `${reserveETH} ETH`}
+              </p>
+              <p>
+                Reserve Token:{" "}
+                {reserveError
+                  ? "N/A"
+                  : isLoading || reserveToken === null
+                  ? "..."
+                  : `${reserveToken} TKN`}
+              </p>
             </div>
 
             <div className="dashboard-card__cta">
@@ -123,8 +162,13 @@ export default function Home() {
               >
                 {isLoading ? "Refreshing..." : "🔄 Refresh"}
               </button>
+              {reserveError && (
+                <p className="text-sm text-red-400">{reserveError}</p>
+              )}
             </div>
           </article>
+
+          <SwapBox onSwapComplete={loadReserves} />
         </div>
       </section>
 
