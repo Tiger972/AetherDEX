@@ -6,7 +6,9 @@ import type { MetaMaskInpageProvider } from "@metamask/providers";
 import SwapBox from "@/components/SwapBox";
 import abi from "../abi/SimpleDEX.json";
 
-const DEX_ADDRESS = "0x1d61EE6cc145A68Da54Ced80F6956498bcCaCF02";
+const DEFAULT_DEX_ADDRESS = "0x1d61EE6cc145A68Da54Ced80F6956498bcCaCF02";
+const DEX_ADDRESS =
+  process.env.NEXT_PUBLIC_DEX_ADDRESS ?? DEFAULT_DEX_ADDRESS;
 
 export default function Home() {
   const [account, setAccount] = useState<string | null>(null);
@@ -59,8 +61,22 @@ export default function Home() {
           "Set NEXT_PUBLIC_INFURA_ID or connect MetaMask to view reserves."
         );
       }
+      const dexAddress = DEX_ADDRESS;
 
-      const dex = new ethers.Contract(DEX_ADDRESS, abi.abi, provider);
+      if (!ethers.isAddress(dexAddress)) {
+        throw new Error(
+          "Invalid DEX contract address. Set NEXT_PUBLIC_DEX_ADDRESS to a valid address."
+        );
+      }
+
+      const code = await provider.getCode(dexAddress);
+      if (!code || code === "0x") {
+        throw new Error(
+          "No SimpleDEX contract found at the configured address on this network. Deploy to Sepolia and update NEXT_PUBLIC_DEX_ADDRESS."
+        );
+      }
+
+      const dex = new ethers.Contract(dexAddress, abi.abi, provider);
       const [ethReserve, tokenReserve] = await Promise.all([
         dex.reserveETH(),
         dex.reserveToken(),
@@ -184,6 +200,9 @@ function getReadableReserveError(error: unknown): string {
     }
     if (maybeCode === "CALL_EXCEPTION") {
       return "Contract call reverted. Ensure you are connected to Sepolia or provide NEXT_PUBLIC_INFURA_ID.";
+    }
+    if (maybeCode === "BAD_DATA") {
+      return "The RPC returned empty data for reserveETH(). Double-check the DEX address, network, and deployment.";
     }
   }
 
