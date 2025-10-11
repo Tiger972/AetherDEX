@@ -6,14 +6,11 @@ import "../src/Token.sol";
 
 contract DeployToken is Script {
     function run() external {
-        // 1. Charger ta clé privée depuis .env
-        uint256 deployerPrivateKey = vm.parseUint(vm.envString("PRIVATE_KEY"));
+        // Use forge CLI flags (e.g. --ledger/--account) to provide signing context.
+        vm.startBroadcast();
 
-        // 2. Commencer la transaction
-        vm.startBroadcast(deployerPrivateKey);
-
-        // 3. Déployer le token
         TestToken token = new TestToken();
+        console2.log("Token deployed at", address(token));
 
         vm.stopBroadcast();
     }

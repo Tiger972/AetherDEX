@@ -5,26 +5,46 @@ import { ethers } from "ethers";
 import SimpleDEX from "@/abi/SimpleDEX.json";
 
 type SwapBoxProps = {
+  dexAddress: string | null;
   onSwapComplete?: () => void;
 };
 
-const DEX_ADDRESS = "0x1d61EE6cc145A68Da54Ced80F6956498bcCaCF02";
+const REQUIRED_CHAIN_ID = 11155111n;
 
 export default function SwapBox({
+  dexAddress,
   onSwapComplete,
 }: SwapBoxProps): ReactElement {
   const [ethAmount, setEthAmount] = useState<string>("");
+  const [slippageTolerance, setSlippageTolerance] = useState<string>("1");
   const [isSwapping, setIsSwapping] = useState<boolean>(false);
   const [statusMessage, setStatusMessage] = useState<string>("");
 
   const numericAmount = Number(ethAmount);
   const isAmountValid =
     Number.isFinite(numericAmount) && numericAmount > 0;
+  const numericSlippage = Number(slippageTolerance);
+  const isSlippageValid =
+    Number.isFinite(numericSlippage) &&
+    numericSlippage >= 0 &&
+    numericSlippage < 100;
 
   async function handleSwap(): Promise<void> {
     try {
+      setStatusMessage("");
+
       if (!window.ethereum) {
         setStatusMessage("MetaMask not detected. Install the extension to continue.");
+        return;
+      }
+
+      if (!dexAddress) {
+        setStatusMessage("DEX address not configured. Set NEXT_PUBLIC_DEX_ADDRESS.");
+        return;
+      }
+
+      if (!ethers.isAddress(dexAddress)) {
+        setStatusMessage("Configured DEX address is invalid.");
         return;
       }
 
@@ -33,15 +53,47 @@ export default function SwapBox({
         return;
       }
 
+      if (!isSlippageValid) {
+        setStatusMessage("Provide a slippage tolerance between 0 and 99.99%.");
+        return;
+      }
+
       setIsSwapping(true);
       setStatusMessage("Submitting transaction...");
 
       const provider = new ethers.BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner();
-      const dex = new ethers.Contract(DEX_ADDRESS, SimpleDEX.abi, signer);
+      const network = await provider.getNetwork();
 
-      const tx = await dex.swapETHForToken({
-        value: ethers.parseEther(ethAmount),
+      if (network.chainId !== REQUIRED_CHAIN_ID) {
+        setStatusMessage("Switch MetaMask to the Sepolia test network before swapping.");
+        return;
+      }
+
+      const signer = await provider.getSigner();
+      const dex = new ethers.Contract(dexAddress, SimpleDEX.abi, signer);
+
+      const ethAmountWei = ethers.parseEther(ethAmount);
+      const estimatedTokens = await dex.getTokenAmount(ethAmountWei);
+
+      if (estimatedTokens === 0n) {
+        setStatusMessage("Pool currently cannot fulfill this swap (insufficient liquidity).");
+        return;
+      }
+
+      const slippageBps = Math.round(numericSlippage * 100);
+      const minTokensOut =
+        estimatedTokens -
+        (estimatedTokens * BigInt(slippageBps)) / 10_000n;
+
+      if (minTokensOut <= 0n) {
+        setStatusMessage("Slippage tolerance too high for this swap size.");
+        return;
+      }
+
+      const deadline = Math.floor(Date.now() / 1000) + 60 * 5;
+
+      const tx = await dex.swapETHForToken(minTokensOut, deadline, {
+        value: ethAmountWei,
       });
 
       setStatusMessage("Waiting for confirmation...");
@@ -52,8 +104,7 @@ export default function SwapBox({
       onSwapComplete?.();
     } catch (error) {
       console.error("Swap failed:", error);
-      const message =
-        error instanceof Error ? error.message : "Unexpected error occurred.";
+      const message = getReadableSwapError(error);
       setStatusMessage(`Swap failed: ${message}`);
     } finally {
       setIsSwapping(false);
@@ -86,10 +137,34 @@ export default function SwapBox({
         />
       </div>
 
+      <div className="dashboard-card__info">
+        <label
+          className="text-left text-xs uppercase tracking-wide text-gray-400"
+          htmlFor="swap-slippage"
+        >
+          Slippage tolerance (%)
+        </label>
+        <input
+          id="swap-slippage"
+          type="number"
+          min="0"
+          step="0.1"
+          value={slippageTolerance}
+          onChange={(event) => setSlippageTolerance(event.target.value)}
+          placeholder="1"
+          className="w-full rounded-xl border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-500/60"
+        />
+      </div>
+
       <div className="dashboard-card__cta">
         <button
           onClick={handleSwap}
-          disabled={isSwapping || !isAmountValid}
+          disabled={
+            isSwapping ||
+            !isAmountValid ||
+            !isSlippageValid ||
+            !dexAddress
+          }
           className="btn-primary dashboard-button disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isSwapping ? "Swapping..." : "Swap"}
@@ -101,4 +176,22 @@ export default function SwapBox({
       </div>
     </article>
   );
+}
+
+function getReadableSwapError(error: unknown): string {
+  if (typeof error === "object" && error !== null) {
+    const maybeCode = (error as { code?: string | number }).code;
+    if (maybeCode === 4001) {
+      return "Transaction rejected in wallet.";
+    }
+    if (maybeCode === "ACTION_REJECTED") {
+      return "Transaction rejected in wallet.";
+    }
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "Unexpected error occurred.";
 }

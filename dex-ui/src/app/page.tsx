@@ -7,9 +7,8 @@ import SwapBox from "@/components/SwapBox";
 import ReservesChart from "@/components/ReservesChart";
 import abi from "../abi/SimpleDEX.json";
 
-const DEFAULT_DEX_ADDRESS = "0x1d61EE6cc145A68Da54Ced80F6956498bcCaCF02";
-const DEX_ADDRESS =
-  process.env.NEXT_PUBLIC_DEX_ADDRESS ?? DEFAULT_DEX_ADDRESS;
+const DEX_ADDRESS = process.env.NEXT_PUBLIC_DEX_ADDRESS ?? null;
+const REQUIRED_CHAIN_ID = 11155111n;
 
 export default function Home() {
   const [account, setAccount] = useState<string | null>(null);
@@ -35,6 +34,12 @@ export default function Home() {
       const ethereum = window.ethereum as MetaMaskInpageProvider;
       const provider = new ethers.BrowserProvider(ethereum);
       const accounts: string[] = await provider.send("eth_requestAccounts", []);
+
+      const network = await provider.getNetwork();
+      if (network.chainId !== REQUIRED_CHAIN_ID) {
+        alert("Please switch MetaMask to the Sepolia test network before continuing.");
+        return;
+      }
 
       if (!accounts.length) {
         alert("No accounts returned from MetaMask.");
@@ -62,6 +67,10 @@ export default function Home() {
         );
       } else if (window.ethereum) {
         provider = new ethers.BrowserProvider(window.ethereum);
+        const network = await provider.getNetwork();
+        if (network.chainId !== REQUIRED_CHAIN_ID) {
+          throw new Error("Connect MetaMask to Sepolia before reading reserves.");
+        }
       }
 
       if (!provider) {
@@ -70,6 +79,12 @@ export default function Home() {
         );
       }
       const dexAddress = DEX_ADDRESS;
+
+      if (!dexAddress) {
+        throw new Error(
+          "Set NEXT_PUBLIC_DEX_ADDRESS in your environment before loading reserves."
+        );
+      }
 
       if (!ethers.isAddress(dexAddress)) {
         throw new Error(
@@ -211,7 +226,7 @@ export default function Home() {
             </div>
           </article>
 
-          <SwapBox onSwapComplete={loadReserves} />
+          <SwapBox dexAddress={DEX_ADDRESS} onSwapComplete={loadReserves} />
           <ReservesChart
             data={reserveHistory}
             isLoading={isLoading}
