@@ -1,0 +1,280 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* === Custom global dark theme === */
+:root {
+  --background: #0b0c10;
+  --foreground: #e5e7eb;
+  --card: #1a1b26;
+  --card-border: #2d2f3b;
+  --accent: #8b5cf6;
+}
+
+/* === Global body style === */
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+html,
+body {
+  overflow-x: hidden;
+}
+
+.dashboard-main {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  background: radial-gradient(
+      circle at top,
+      rgba(139, 92, 246, 0.12),
+      transparent 55%
+    )
+      no-repeat,
+    var(--background);
+}
+
+.dashboard-header {
+  width: min(100%, 64rem);
+  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(0.75rem, 2vw, 1.5rem);
+  margin-bottom: clamp(1.5rem, 4vw, 3rem);
+}
+
+.dashboard-title {
+  font-size: clamp(2rem, 6vw, 3.5rem);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-align: center;
+}
+
+.dashboard-subtitle {
+  max-width: 48rem;
+  margin: clamp(0.75rem, 2vw, 1.5rem) auto 0;
+  color: rgba(209, 213, 219, 0.9);
+  font-size: clamp(1rem, 2.6vw, 1.25rem);
+  font-weight: 500;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.dashboard-body {
+  width: min(100%, 64rem);
+  margin-inline: auto;
+  flex: 1 0 auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding-block: clamp(1rem, 4vw, 2.5rem);
+}
+
+.dashboard-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: stretch;
+  gap: clamp(1.75rem, 4vw, 3.5rem);
+  width: 100%;
+}
+
+.dashboard-card {
+  flex: 1 1 19rem;
+  max-width: 24rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 2.25rem;
+  text-align: center;
+}
+
+.dashboard-card__title {
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.dashboard-card__info {
+  display: grid;
+  gap: 0.75rem;
+  color: rgba(226, 232, 240, 0.9);
+  font-size: 0.95rem;
+}
+
+.dashboard-card__meta {
+  margin: 0;
+  color: rgba(209, 213, 219, 0.85);
+  font-size: 0.9rem;
+}
+
+.dashboard-card__cta {
+  margin-top: auto;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.dashboard-button {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 0.85rem;
+}
+
+.dashboard-footer {
+  margin-top: auto;
+  width: min(100%, 64rem);
+  margin-inline: auto;
+  padding-top: clamp(2rem, 5vw, 3.5rem);
+  color: rgba(156, 163, 175, 0.8);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+/* === Reusable UI classes === */
+.card {
+  position: relative;
+  background: linear-gradient(
+    155deg,
+    rgba(30, 34, 51, 0.9) 0%,
+    rgba(12, 13, 22, 0.85) 100%
+  );
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 2rem;
+  padding: 2rem;
+  box-shadow: 0 22px 45px rgba(10, 12, 24, 0.55);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  isolation: isolate;
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card > *:last-child {
+  margin-bottom: 0;
+}
+
+.card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 30px 55px rgba(139, 92, 246, 0.35);
+}
+
+.card:hover .dashboard-card__title {
+  color: var(--foreground);
+}
+
+.card::after {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border-radius: inherit;
+  border: 1px solid rgba(139, 92, 246, 0.35);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.card:hover::after {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    transition: none;
+  }
+
+  .card:hover {
+    transform: none;
+  }
+
+  .card::after {
+    transition: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .card {
+    width: min(100%, 22rem);
+  }
+}
+
+.btn-primary {
+  background-color: var(--accent);
+  color: white;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  transition: background-color 0.3s ease;
+}
+
+.btn-primary:hover {
+  background-color: #7c3aed;
+}
+
+.glow {
+  text-shadow: 0 0 10px rgba(139, 92, 246, 0.6);
+}
+
+.dashboard-card--wide {
+  flex: 1 1 100%;
+  width: 100%;
+  max-width: none;
+  min-height: 18rem;
+}
+
+.aurora-shell {
+  position: relative;
+  border-radius: 2.5rem;
+  isolation: isolate;
+}
+
+.aurora-shell::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: inherit;
+  background: conic-gradient(
+    from 0deg at 50% 50%,
+    rgba(139, 92, 246, 0.55),
+    rgba(59, 130, 246, 0.35),
+    rgba(14, 165, 233, 0.35),
+    rgba(139, 92, 246, 0.55)
+  );
+  filter: blur(28px);
+  opacity: 0.7;
+  animation: auroraGlow 9s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.aurora-shell > .card {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes auroraGlow {
+  0% {
+    transform: rotate(0deg);
+    opacity: 0.6;
+  }
+
+  50% {
+    transform: rotate(180deg);
+    opacity: 0.85;
+  }
+
+  100% {
+    transform: rotate(360deg);
+    opacity: 0.6;
+  }
+}
