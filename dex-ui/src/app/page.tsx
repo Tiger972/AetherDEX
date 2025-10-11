@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { ethers } from "ethers";
 import type { MetaMaskInpageProvider } from "@metamask/providers";
 import SwapBox from "@/components/SwapBox";
+import ReservesChart from "@/components/ReservesChart";
 import abi from "../abi/SimpleDEX.json";
 
 const DEFAULT_DEX_ADDRESS = "0x1d61EE6cc145A68Da54Ced80F6956498bcCaCF02";
@@ -16,6 +17,13 @@ export default function Home() {
   const [reserveToken, setReserveToken] = useState<string | null>(null);
   const [reserveError, setReserveError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [reserveHistory, setReserveHistory] = useState<
+    Array<{
+      timestamp: number;
+      reserveETH: number;
+      reserveToken: number;
+    }>
+  >([]);
 
   async function connectWallet(): Promise<void> {
     try {
@@ -82,8 +90,22 @@ export default function Home() {
         dex.reserveToken(),
       ]);
 
-      setReserveETH(parseFloat(ethers.formatEther(ethReserve)).toFixed(3));
-      setReserveToken(parseFloat(ethers.formatEther(tokenReserve)).toFixed(3));
+      const numericEth = Number(ethers.formatEther(ethReserve));
+      const numericToken = Number(ethers.formatEther(tokenReserve));
+
+      setReserveETH(numericEth.toFixed(3));
+      setReserveToken(numericToken.toFixed(3));
+      setReserveHistory((prev) => {
+        const next = [
+          ...prev,
+          {
+            timestamp: Date.now(),
+            reserveETH: numericEth,
+            reserveToken: numericToken,
+          },
+        ];
+        return next.slice(-12);
+      });
     } catch (error) {
       console.error("Failed to load reserves:", error);
       const message = getReadableReserveError(error);
@@ -95,6 +117,14 @@ export default function Home() {
 
   useEffect(() => {
     loadReserves();
+  }, [loadReserves]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      void loadReserves();
+    }, 10_000);
+
+    return () => clearInterval(interval);
   }, [loadReserves]);
 
   return (
@@ -182,6 +212,11 @@ export default function Home() {
           </article>
 
           <SwapBox onSwapComplete={loadReserves} />
+          <ReservesChart
+            data={reserveHistory}
+            isLoading={isLoading}
+            error={reserveError}
+          />
         </div>
       </section>
 
